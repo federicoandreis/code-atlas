@@ -501,7 +501,7 @@ def add(
             if no_llm:
                 cfg.llm.enabled = False
             with Enricher(cfg, store) as enricher:
-                summary = enricher.enrich_project(snapshot)
+                summary, _ = enricher.enrich_project(snapshot)
             rprint(f"     [green]✓[/green] {summary.one_liner}")
 
     if config_path:
@@ -769,16 +769,22 @@ def enrich(
             resolved.append(root_str)
         db_roots = resolved
 
-    with Enricher(cfg, store) as enricher:
-        for root_str in db_roots:
-            root = Path(root_str)
-            if not root.exists():
-                rprint(f"[yellow]Skipping (not found):[/yellow] {root_str}")
-                continue
-            rprint(f"Enriching [bold]{root.name}[/bold]...")
-            snapshot = scanner.scan(root)
-            summary = enricher.enrich_project(snapshot)
-            rprint(f"  [green]✓[/green] {summary.one_liner}")
+    try:
+        with Enricher(cfg, store) as enricher:
+            for root_str in db_roots:
+                root = Path(root_str)
+                if not root.exists():
+                    rprint(f"[yellow]Skipping (not found):[/yellow] {root_str}")
+                    continue
+                snapshot = scanner.scan(root)
+                summary, was_new = enricher.enrich_project(snapshot)
+                if was_new:
+                    rprint(f"[green]✓[/green] [bold]{root.name}[/bold]: {summary.one_liner}")
+                else:
+                    rprint(f"  [dim]{root.name}: up to date[/dim]")
+    except KeyboardInterrupt:
+        rprint("\n[yellow]Enrichment interrupted. Cached progress is saved.[/yellow]")
+        raise typer.Exit(130)
 
     rprint(f"\n[bold]Enrichment complete.[/bold] Run [bold]atlas report[/bold] to generate outputs.")
 
@@ -857,28 +863,32 @@ def update(
 
     repos_dir = cfg.atlas_path / "repos"
 
-    with Enricher(cfg, store) as enricher:
-        for root in roots:
-            if not root.exists():
-                rprint(f"[yellow]Skipping (not found):[/yellow] {root}")
-                continue
-            # Pull latest if this is a managed remote clone
-            if repos_dir in root.parents or root.parent == repos_dir:
-                _pull_if_remote(root)
-            old_hashes = store.get_file_hashes(str(root))
-            snapshot = scanner.scan(root)
-            new_hashes = {r.relative_path: r.sha256 for r in snapshot.files}
-            changed = [
-                r for r in snapshot.files
-                if old_hashes.get(r.relative_path) != new_hashes.get(r.relative_path)
-            ]
-            if changed:
-                store.upsert_snapshot(snapshot)
-                enricher.enrich_project(snapshot)
-                changed_projects += 1
-                rprint(f"[green]✓[/green] {root.name}: {len(changed)} file(s) changed")
-            else:
-                rprint(f"  {root.name}: no changes")
+    try:
+        with Enricher(cfg, store) as enricher:
+            for root in roots:
+                if not root.exists():
+                    rprint(f"[yellow]Skipping (not found):[/yellow] {root}")
+                    continue
+                # Pull latest if this is a managed remote clone
+                if repos_dir in root.parents or root.parent == repos_dir:
+                    _pull_if_remote(root)
+                old_hashes = store.get_file_hashes(str(root))
+                snapshot = scanner.scan(root)
+                new_hashes = {r.relative_path: r.sha256 for r in snapshot.files}
+                changed = [
+                    r for r in snapshot.files
+                    if old_hashes.get(r.relative_path) != new_hashes.get(r.relative_path)
+                ]
+                if changed:
+                    store.upsert_snapshot(snapshot)
+                    enricher.enrich_project(snapshot)
+                    changed_projects += 1
+                    rprint(f"[green]✓[/green] {root.name}: {len(changed)} file(s) changed")
+                else:
+                    rprint(f"  {root.name}: no changes")
+    except KeyboardInterrupt:
+        rprint("\n[yellow]Update interrupted. Cached progress is saved.[/yellow]")
+        raise typer.Exit(130)
 
     if changed_projects:
         reporter = Reporter(store)

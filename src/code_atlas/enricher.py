@@ -64,15 +64,23 @@ class Enricher:
     def __exit__(self, *_) -> None:
         self.close()
 
-    def enrich_project(self, snapshot: ProjectSnapshot) -> ProjectSummary:
-        file_summaries = self._enrich_files(snapshot)
-        return self._enrich_project(snapshot, file_summaries)
+    def enrich_project(self, snapshot: ProjectSnapshot) -> tuple[ProjectSummary, bool]:
+        """Enrich a project. Returns (summary, was_enriched).
+
+        was_enriched is False when all file summaries were already cached and a
+        project summary already existed — no LLM calls were made.
+        """
+        existing = self.store.get_project_summary(snapshot.name)
+        file_summaries, any_new = self._enrich_files(snapshot)
+        if existing is not None and not any_new:
+            return existing, False
+        return self._enrich_project(snapshot, file_summaries), True
 
     # ------------------------------------------------------------------ #
     # File-level enrichment                                                #
     # ------------------------------------------------------------------ #
 
-    def _enrich_files(self, snapshot: ProjectSnapshot) -> list[FileSummary]:
+    def _enrich_files(self, snapshot: ProjectSnapshot) -> tuple[list[FileSummary], bool]:
         results: list[FileSummary] = []
         to_summarize = []
 
@@ -107,7 +115,7 @@ class Enricher:
                 to_summarize.append((rec, symbols_by_file.get(str(rec.path), [])))
 
         if not to_summarize or not self.config.llm.enabled:
-            return results
+            return results, False
 
         batch_size = self.config.llm.batch_size
         total = len(to_summarize)
@@ -128,7 +136,7 @@ class Enricher:
                 self.store.upsert_file_summary(fs)
                 results.append(fs)
 
-        return results
+        return results, True
 
     def _summarize_file_batch(self, batch: list[tuple], project_name: str) -> list[str]:
         parts = []
