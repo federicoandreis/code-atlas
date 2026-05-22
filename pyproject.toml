@@ -1,0 +1,70 @@
+[project]
+name = "code-atlas"
+version = "0.1.0"
+description = "Fully local code project knowledge base for coding assistant injection"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Federico Andreis", email = "federico.andreis@gmail.com" }]
+keywords = [
+    "code-search", "knowledge-base", "llm", "coding-assistant",
+    "tree-sitter", "local-ai", "developer-tools",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "typer>=0.12",
+    "tree-sitter>=0.23",
+    "tree-sitter-languages>=1.10",
+    "networkx>=3.3",
+    "httpx>=0.27",
+    "pyyaml>=6.0",
+    "gitpython>=3.1",
+    "rich>=13.0",
+    "platformdirs>=4.0",
+]
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.0"]
+dev = ["pytest>=8.0", "ruff>=0.6", "pyright>=1.1"]
+
+[project.urls]
+Homepage = "https://github.com/federicoandreis/code-atlas"
+Repository = "https://github.com/federicoandreis/code-atlas"
+Issues = "https://github.com/federicoandreis/code-atlas/issues"
+
+[project.scripts]
+atlas = "code_atlas.cli:main"
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+src = ["src"]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.pyright]
+pythonVersion = "3.11"
+pythonPlatform = "Windows"
+typeCheckingMode = "standard"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

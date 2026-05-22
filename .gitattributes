@@ -1,0 +1,20 @@
+# Normalize line endings: store as LF, check out as native
+* text=auto
+
+# Force LF for scripts and config that must survive cross-platform round-trips
+*.py    text eol=lf
+*.md    text eol=lf
+*.toml  text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.json  text eol=lf
+*.txt   text eol=lf
+*.js    text eol=lf
+*.ts    text eol=lf
+*.sh    text eol=lf
+
+# Binary — never touch
+*.png   binary
+*.jpg   binary
+*.pdf   binary
+*.db    binary

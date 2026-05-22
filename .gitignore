@@ -1,0 +1,59 @@
+# Planning and development materials (not shipped)
+task_plan.md
+findings.md
+progress.md
+docs/
+
+# Atlas runtime data — lives in ~/.atlas/, not the repo
+.atlas/
+*.atlas.db
+atlas.db
+atlas.yaml
+PROJECTS_ATLAS.md
+graph.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+.env.*
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.spec
+
+# uv / pyenv
+.python-version
+uv.lock
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code local settings (user-specific)
+.claude/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Type checker caches
+.pyright/
+pyrightconfig.json
