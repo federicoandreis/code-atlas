@@ -1,6 +1,6 @@
 # code-atlas
 
-> Fully local code project knowledge base for AI coding assistants.
+> Fully local code project knowledge base for AI coding assistants. This is a learning project!
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -10,6 +10,12 @@
 **The problem:** Every time you open a new coding session, your AI assistant asks the same questions — what's in this codebase? what libraries do you use? have you solved this before? It wastes tokens and time re-discovering what you already built.
 
 **The fix:** code-atlas scans your projects once, generates compact summaries with a local LLM, and writes a single `PROJECTS_ATLAS.md` that your coding assistant reads at session start. Your whole portfolio, one page, zero cloud.
+
+This project is inspired by:
+
+- **[llm-wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)** by Andrej Karpathy — the idea of building a compact, LLM-digestible knowledge base from a corpus of documents.
+- **[graphifyy](https://github.com/safishamsi/graphify)** — demonstrating how to turn a codebase into a structured, queryable graph with minimal overhead.
+- Prior work on **local knowledge graphs** — experience building heavier graph pipelines (Neo4j + LanceDB) showed where the computational cost concentrates and what a leaner, code-specific tool should avoid ([ragsistant](https://github.com/federicoandreis/ragsistant) and [The Grey Tutor](https://github.com/federicoandreis/TheGreyTutor)).
 
 ---
 
@@ -352,15 +358,7 @@ PRs with real-world testing notes are welcome.
 
 ---
 
-## Acknowledgements
 
-code-atlas grew out of three sources of inspiration:
-
-- **[llm-wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)** by Andrej Karpathy — the idea of building a compact, LLM-digestible knowledge base from a corpus of documents.
-- **[graphifyy](https://github.com/safishamsi/graphify)** — demonstrating how to turn a codebase into a structured, queryable graph with minimal overhead.
-- Prior work on **local knowledge graphs** — experience building heavier graph pipelines (Neo4j + LanceDB) showed where the computational cost concentrates and what a leaner, code-specific tool should avoid.
-
----
 
 ## License
 
