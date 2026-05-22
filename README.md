@@ -193,16 +193,24 @@ atlas health
 ```
 
 ```
+[ERROR] old-prototype: path not found (/home/you/dev/old-prototype)
+        → atlas remove old-prototype
 [WARN]  data-pipeline: scanned but not enriched
         → atlas enrich --project data-pipeline
-[INFO]  Similar names: 'my-api' and 'my-api-v2' (similarity 83%)
+[INFO]  Possibly duplicate: 'my-api' and 'my-api-v2' (name similarity 87%)
+[INFO]  Possibly duplicate: 'user-service' and 'auth-service' (content overlap 61%, 9 shared terms)
 
-2 issue(s): 0 errors, 1 warning, 1 info
+4 issue(s): 1 error, 1 warning, 2 info
 
 Run with --fix to auto-remove dead paths.
 ```
 
-`--fix` automatically removes entries whose paths no longer exist on disk. Other issues require manual action.
+`--fix` automatically removes entries whose disk paths no longer exist. Other issues require manual action.
+
+Similarity detection is based on two independent signals:
+
+- **Name similarity** — compares the meaningful part of each name after stripping any common prefix shared by all projects (e.g. a `username-` prefix from GitHub clones is removed before comparison, so `alice-foo` and `alice-bar` are not spuriously flagged). Fires at ≥ 80% similarity on names of 5+ characters.
+- **Content similarity** — compares keywords and tech stack from each project's enriched card using Jaccard overlap. Fires at ≥ 55% overlap with at least 7 shared terms. Only applies to enriched projects.
 
 ### 7. Wire into your coding assistant
 
@@ -248,7 +256,7 @@ This writes per-project skill cards to `skills/knowledge/atlas-*.md` and appends
 | `atlas show <name>` | One project card |
 | `atlas show <name> --files` | Include per-file summaries |
 | `atlas status` | Atlas location, DB path, indexed project list |
-| `atlas health` | Diagnose dead paths, missing summaries, duplicates |
+| `atlas health` | Diagnose dead paths, missing summaries, content-based duplicate detection |
 | `atlas health --fix` | Auto-remove dead-path entries |
 
 ### Maintenance
