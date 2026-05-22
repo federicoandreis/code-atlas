@@ -898,7 +898,7 @@ def health(
     fix: Annotated[bool, typer.Option("--fix",
         help="Auto-remove dead paths (safe). All other issues require manual action.")] = False,
 ) -> None:
-    """Diagnose atlas health: dead paths, missing summaries, duplicates, similar names."""
+    """Diagnose atlas health: dead paths, missing summaries, duplicates, similar content."""
     import difflib
     from rich.console import Console
 
@@ -916,7 +916,13 @@ def health(
             ).fetchall()
         }
 
-    summarized = {s.project_name for s in store.all_project_summaries()}
+    all_summaries = store.all_project_summaries()
+    summarized = {s.project_name for s in all_summaries}
+    # keywords + tech_stack from each enriched card, used for content-similarity check
+    summary_terms: dict[str, set[str]] = {
+        s.project_name: set(s.keywords) | set(s.tech_stack)
+        for s in all_summaries
+    }
 
     if not projects:
         rprint("[yellow]No projects in atlas.[/yellow]")
@@ -966,19 +972,47 @@ def health(
                 f"atlas remove {names[-1]}",
             ))
 
-    # Similar names (may be snapshots / branches of the same project)
-    names = [p["name"] for p in projects]
+    # Possibly duplicate projects — compare card content and prefix-stripped names.
+    # Name-only comparison is unreliable when all projects share a common prefix
+    # (e.g. all cloned from the same GitHub account as "username-reponame").
+    project_names = [p["name"] for p in projects]
+    common_pfx = _common_name_prefix(project_names)
     seen_pairs: set[frozenset] = set()
-    for a in names:
-        for b in names:
-            if a == b or frozenset({a, b}) in seen_pairs:
+    for i, a in enumerate(project_names):
+        for b in project_names[i + 1:]:
+            pair = frozenset({a, b})
+            if pair in seen_pairs:
                 continue
-            seen_pairs.add(frozenset({a, b}))
-            ratio = difflib.SequenceMatcher(None, a.lower(), b.lower()).ratio()
-            if ratio >= 0.75:
+            seen_pairs.add(pair)
+
+            reasons: list[str] = []
+
+            # Name similarity — only on the part after the common prefix,
+            # and only when both stripped names are long enough to be meaningful.
+            a_stripped = a[len(common_pfx):] if a.lower().startswith(common_pfx) else a
+            b_stripped = b[len(common_pfx):] if b.lower().startswith(common_pfx) else b
+            if len(a_stripped) >= 5 and len(b_stripped) >= 5:
+                name_sim = difflib.SequenceMatcher(
+                    None, a_stripped.lower(), b_stripped.lower()
+                ).ratio()
+                if name_sim >= 0.80:
+                    reasons.append(f"name similarity {name_sim:.0%}")
+
+            # Content similarity — Jaccard on keywords + tech_stack from enriched cards.
+            a_terms = summary_terms.get(a, set())
+            b_terms = summary_terms.get(b, set())
+            if a_terms and b_terms:
+                shared = a_terms & b_terms
+                jaccard = len(shared) / len(a_terms | b_terms)
+                if jaccard >= 0.55 and len(shared) >= 7:
+                    reasons.append(
+                        f"content overlap {jaccard:.0%} ({len(shared)} shared terms)"
+                    )
+
+            if reasons:
                 infos.append((
-                    "similar_name",
-                    f"Similar names: '{a}' and '{b}' (similarity {ratio:.0%}) — possibly the same project",
+                    "similar_project",
+                    f"Possibly duplicate: '{a}' and '{b}' ({', '.join(reasons)})",
                     None,
                 ))
 
@@ -1021,6 +1055,22 @@ def health(
         rprint("[dim]Re-run atlas health to check remaining issues.[/dim]")
     elif errors:
         rprint("\n[dim]Run with --fix to auto-remove dead paths.[/dim]")
+
+
+def _common_name_prefix(names: list[str]) -> str:
+    """Longest separator-aligned prefix shared by all project names (case-insensitive).
+
+    Used to strip e.g. 'username-' before comparing GitHub-cloned project names,
+    so that 'alice-foo' and 'alice-bar' aren't flagged as similar due to the shared owner prefix.
+    """
+    if len(names) < 2:
+        return ""
+    raw = os.path.commonprefix([n.lower() for n in names])
+    for sep in ("-", "_", "."):
+        idx = raw.rfind(sep)
+        if idx >= 0:
+            return raw[:idx + 1]
+    return ""
 
 
 def _normalize_remote(url: str) -> str:
